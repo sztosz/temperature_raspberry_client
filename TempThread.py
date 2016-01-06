@@ -6,13 +6,12 @@ import time
 import requests
 from w1thermsensor import W1ThermSensor
 
-from client import SERVER_ULR
-
 
 class TempThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, server_url):
         super(TempThread, self).__init__()
         self.sensor = W1ThermSensor()
+        self.server_url = server_url
         self.is_running = True
         self.setDaemon(True)
         self.sensor_id = self.register_sensor()
@@ -26,7 +25,7 @@ class TempThread(threading.Thread):
         self.is_running = False
 
     def register_sensor(self):
-        response = requests.get(SERVER_ULR + '/api/v1/sensors/')
+        response = requests.get(self.server_url + '/api/v1/sensors/')
         content = json.loads(response.text)
 
         for result in content['results']:
@@ -36,7 +35,7 @@ class TempThread(threading.Thread):
         else:
             payload = {'name': self.sensor.id}
             print payload
-            response = requests.post(SERVER_ULR + '/api/v1/sensors/',
+            response = requests.post(self.server_url + '/api/v1/sensors/',
                                      json=payload)
             content = json.loads(response.text)
             print content
@@ -45,7 +44,8 @@ class TempThread(threading.Thread):
 
     def post_temperature(self, temperature):
         payload = {"sensor": self.sensor_id, "reading": temperature}
-        response = requests.post(SERVER_ULR + '/api/v1/reading/', json=payload)
+        response = requests.post(self.server_url + '/api/v1/reading/',
+                                 json=payload)
         if response.status_code == requests.codes.created:
             print '{} : temp {}'.format(response.status_code, temperature)
         else:
